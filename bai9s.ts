@@ -1,99 +1,98 @@
-class Comment {
-  public id: number;
-  public userId: number;
-  public content: string;
-  public replies: Comment[] = [];
+class Review {
+  public reviewId: number;
+  public reviewerId: number;
+  public text: string;
+  public replies: Review[] = [];
 
-  constructor(id: number, userId: number, content: string) {
-    this.id = id;
-    this.userId = userId;
-    this.content = content;
+  constructor(reviewId: number, reviewerId: number, text: string) {
+    this.reviewId = reviewId;
+    this.reviewerId = reviewerId;
+    this.text = text;
   }
 
-  addReply(reply: Comment): void {
+  addReply(reply: Review): void {
     this.replies.push(reply);
   }
 }
 
-class Post {
-  public id: number;
-  public likes: number[] = [];
-  public comments: Comment[] = [];
-  public userId: number;
+class Article {
+  public articleId: number;
+  public authorId: number;
   public content: string;
+  public likedBy: number[] = [];
+  public reviews: Review[] = [];
 
-  constructor(id: number, userId: number, content: string) {
-    this.id = id;
-    this.userId = userId;
+  constructor(articleId: number, authorId: number, content: string) {
+    this.articleId = articleId;
+    this.authorId = authorId;
     this.content = content;
   }
 
   addLike(userId: number): void {
-    if (!this.likes.includes(userId)) {
-      this.likes.push(userId);
+    if (!this.likedBy.includes(userId)) {
+      this.likedBy.push(userId);
     }
   }
 
-  addComment(comment: Comment): void {
-    this.comments.push(comment);
+  addReview(review: Review): void {
+    this.reviews.push(review);
   }
 }
 
-class User {
-  public id: number;
-  public posts: Post[] = [];
-  public followers: User[] = [];
+class Member {
+  public memberId: number;
+  public articles: Article[] = [];
+  public following: Member[] = [];
 
-  constructor(id: number) {
-    this.id = id;
+  constructor(memberId: number) {
+    this.memberId = memberId;
   }
 
-  createPost(content: string): Post {
-    const postId = this.posts.length + 1;
-    const post = new Post(postId, this.id, content);
-    this.posts.push(post);
-    return post;
+  createArticle(content: string): Article {
+    const newId = this.articles.length + 1;
+    const article = new Article(newId, this.memberId, content);
+    this.articles.push(article);
+    return article;
   }
 
-  comment(postId: number, commentContent: string): void {
-    let targetPost: Post | undefined;
-    targetPost = this.posts.find(p => p.id === postId);
-    if (!targetPost) {
-      for (const user of this.followers) {
-        targetPost = user.posts.find(p => p.id === postId);
-        if (targetPost) break;
+  commentOnArticle(articleId: number, commentText: string): void {
+    let targetArticle: Article | undefined = this.articles.find(a => a.articleId === articleId);
+    if (!targetArticle) {
+      for (const followed of this.following) {
+        targetArticle = followed.articles.find(a => a.articleId === articleId);
+        if (targetArticle) break;
       }
     }
-    if (!targetPost) return;
-    const commentId = targetPost.comments.length + 1;
-    const comment = new Comment(commentId, this.id, commentContent);
-    targetPost.addComment(comment);
+    if (!targetArticle) return;
+
+    const newReviewId = targetArticle.reviews.length + 1;
+    const review = new Review(newReviewId, this.memberId, commentText);
+    targetArticle.addReview(review);
   }
 
-  follow(user: User): void {
-    if (!this.followers.includes(user) && user.id !== this.id) {
-      this.followers.push(user);
+  follow(member: Member): void {
+    if (member.memberId !== this.memberId && !this.following.includes(member)) {
+      this.following.push(member);
     }
   }
 
-  likePost(postId: number): void {
-    let targetPost: Post | undefined;
-    targetPost = this.posts.find(p => p.id === postId);
-    if (!targetPost) {
-      for (const user of this.followers) {
-        targetPost = user.posts.find(p => p.id === postId);
-        if (targetPost) break;
+  likeArticle(articleId: number): void {
+    let targetArticle: Article | undefined = this.articles.find(a => a.articleId === articleId);
+    if (!targetArticle) {
+      for (const followed of this.following) {
+        targetArticle = followed.articles.find(a => a.articleId === articleId);
+        if (targetArticle) break;
       }
     }
-    if (!targetPost) return;
-    targetPost.addLike(this.id);
+    if (!targetArticle) return;
+    targetArticle.addLike(this.memberId);
   }
 
-  viewFeed(): Post[] {
-    const feedPosts: Post[] = [];
-    for (const user of this.followers) {
-      feedPosts.push(...user.posts);
+  viewFeed(): Article[] {
+    let feed: Article[] = [];
+    for (const followed of this.following) {
+      feed = feed.concat(followed.articles);
     }
-    return feedPosts.sort((a, b) => b.id - a.id);
+    return feed.sort((a, b) => b.articleId - a.articleId);
   }
 }
