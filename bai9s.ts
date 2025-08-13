@@ -1,93 +1,99 @@
-class MenuItem {
-    public id: number;
-    public name: string;
-    public price: number;
+class Comment {
+  public id: number;
+  public userId: number;
+  public content: string;
+  public replies: Comment[] = [];
 
-    constructor(id: number, name: string, price: number) {
-        this.id = id;
-        this.name = name;
-        this.price = price;
-    }
+  constructor(id: number, userId: number, content: string) {
+    this.id = id;
+    this.userId = userId;
+    this.content = content;
+  }
+
+  addReply(reply: Comment): void {
+    this.replies.push(reply);
+  }
 }
 
-class Table {
-    public id: number;
-    public capacity: number;
-    public available: boolean;
+class Post {
+  public id: number;
+  public likes: number[] = [];
+  public comments: Comment[] = [];
+  public userId: number;
+  public content: string;
 
-    constructor(id: number, capacity: number, available: boolean = true) {
-        this.id = id;
-        this.capacity = capacity;
-        this.available = available;
+  constructor(id: number, userId: number, content: string) {
+    this.id = id;
+    this.userId = userId;
+    this.content = content;
+  }
+
+  addLike(userId: number): void {
+    if (!this.likes.includes(userId)) {
+      this.likes.push(userId);
     }
+  }
+
+  addComment(comment: Comment): void {
+    this.comments.push(comment);
+  }
 }
 
-class Reservation {
-    public id: number;
-    public customerName: string;
-    public tableId: number;
+class User {
+  public id: number;
+  public posts: Post[] = [];
+  public followers: User[] = [];
 
-    constructor(id: number, customerName: string, tableId: number) {
-        this.id = id;
-        this.customerName = customerName;
-        this.tableId = tableId;
+  constructor(id: number) {
+    this.id = id;
+  }
+
+  createPost(content: string): Post {
+    const postId = this.posts.length + 1;
+    const post = new Post(postId, this.id, content);
+    this.posts.push(post);
+    return post;
+  }
+
+  comment(postId: number, commentContent: string): void {
+    let targetPost: Post | undefined;
+    targetPost = this.posts.find(p => p.id === postId);
+    if (!targetPost) {
+      for (const user of this.followers) {
+        targetPost = user.posts.find(p => p.id === postId);
+        if (targetPost) break;
+      }
     }
+    if (!targetPost) return;
+    const commentId = targetPost.comments.length + 1;
+    const comment = new Comment(commentId, this.id, commentContent);
+    targetPost.addComment(comment);
+  }
+
+  follow(user: User): void {
+    if (!this.followers.includes(user) && user.id !== this.id) {
+      this.followers.push(user);
+    }
+  }
+
+  likePost(postId: number): void {
+    let targetPost: Post | undefined;
+    targetPost = this.posts.find(p => p.id === postId);
+    if (!targetPost) {
+      for (const user of this.followers) {
+        targetPost = user.posts.find(p => p.id === postId);
+        if (targetPost) break;
+      }
+    }
+    if (!targetPost) return;
+    targetPost.addLike(this.id);
+  }
+
+  viewFeed(): Post[] {
+    const feedPosts: Post[] = [];
+    for (const user of this.followers) {
+      feedPosts.push(...user.posts);
+    }
+    return feedPosts.sort((a, b) => b.id - a.id);
+  }
 }
-
-class Order {
-    public id: number;
-    public tableId: number;
-    public items: MenuItem[];
-
-    constructor(id: number, tableId: number, items: MenuItem[]) {
-        this.id = id;
-        this.tableId = tableId;
-        this.items = items;
-    }
-
-    public getTotal(): number {
-        return this.items.reduce((total, item) => total + item.price, 0);
-    }
-}
-
-class Restaurant {
-    public menu: MenuItem[];
-    public tables: Table[];
-    public reservations: Reservation[];
-    public orders: Order[];
-
-    constructor() {
-        this.menu = [];
-        this.tables = [];
-        this.reservations = [];
-        this.orders = [];
-    }
-
-    public addMenuItem(item: MenuItem): void {
-        this.menu.push(item);
-    }
-
-    public addTable(table: Table): void {
-        this.tables.push(table);
-    }
-
-    public makeReservation(reservationId: number, customerName: string, tableId: number): void {
-        const table = this.tables.find(t => t.id === tableId);
-        if (!table) {
-            console.log("Không tìm thấy bàn!");
-            return;
-        }
-        if (!table.available) {
-            console.log(`Bàn số ${tableId} đã được đặt trước!`);
-            return;
-        }
-        table.available = false;
-        const reservation = new Reservation(reservationId, customerName, tableId);
-        this.reservations.push(reservation);
-        console.log(`Đặt bàn số ${tableId} thành công cho khách ${customerName}.`);
-    }
-
-    public placeOrder(orderId: number, tableId: number, itemIds: number[]): void {
-        const table = this.tables.find(t => t.id === tableId);
-        if (!table) {
-            console.lo
